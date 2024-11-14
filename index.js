@@ -33,7 +33,6 @@ app.get('/', (req, res) => {
   res.send('<h1>Agenda Telefónica</h1>');
 });
 
-
 app.get('/api/persons', (req, res) => {
   res.json(persons);
 });
@@ -57,12 +56,15 @@ app.get('/api/persons/:id', (req, res) => {
 
 app.put('/api/persons/:id', (req, res) => {
   const id = Number(req.params.id);
-  const person = persons.find(person => person.id === id);
+  const { name, number } = req.body;
 
-  if (person) {
+  const personIndex = persons.findIndex(person => person.id === id);
+  if (personIndex !== -1) {
+    const updatedPerson = { ...persons[personIndex], name, number };
+    persons[personIndex] = updatedPerson;
     res.json(updatedPerson);
   } else {
-    res.status(404).end();
+    res.status(404).json({ error: 'Person not found' });
   }
 });
 
