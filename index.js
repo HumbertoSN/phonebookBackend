@@ -20,6 +20,8 @@ app.use(requestLogger);
 morgan.token('body', (req) => JSON.stringify(req.body));
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
 
+app.use(express.static(path.join(__dirname, 'dist'))); 
+
 let persons = [
   { id: 1, name: 'Arto Hellas', number: '040-123456' },
   { id: 2, name: 'Ada Lovelace', number: '39-44-5323523' },
