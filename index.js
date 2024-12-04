@@ -9,17 +9,21 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static('dist'));
 
+const requestLogger = (req, res, next) => {
+    console.log('Method:', req.method);
+    console.log('Path:  ', req.path);
+    console.log('Body:  ', req.body);
+    console.log('---');
+    next();
+};
+
+app.use(requestLogger);
+
 morgan.token('body', (req) => JSON.stringify(req.body));
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'));
 
-app.get('/', (req, res) => {
-    res.send('<h1>Phonebook API</h1>');
-});
-
 app.get('/api/persons', (req, res) => {
-    Person.find({}).then(persons => {
-        res.json(persons);
-    });
+    Person.find({}).then(persons => res.json(persons));
 });
 
 app.get('/api/persons/:id', (req, res, next) => {
@@ -36,14 +40,10 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.post('/api/persons', (req, res, next) => {
     const { name, number } = req.body;
-
     if (!name || !number) {
-        return res.status(400).json({ error: 'Name or number is missing' });
+        return res.status(400).json({ error: 'Name or number missing' });
     }
-    const person = new Person({
-        name,
-        number,
-    });
+    const person = new Person({ name, number });
     person.save()
         .then(savedPerson => res.json(savedPerson))
         .catch(error => next(error));
@@ -60,29 +60,25 @@ app.put('/api/persons/:id', (req, res, next) => {
         .catch(error => next(error));
 });
 
-app.delete('/api/persons/:id', (req, res, next) => {
-    Person.findByIdAndRemove(req.params.id)
-        .then(() => res.status(204).end())
-        .catch(error => next(error));
+app.delete('/api/persons/:id', (req, res) => {
+  const id = req.params.id;
+  Person.findByIdAndDelete(id)
+      .then(result => {
+          console.log(`Deleted person with id: ${id}`);
+          res.status(204).end();
+      })
+      .catch(error => {
+          console.error(error);
+          res.status(500).json({ error: 'Something went wrong while deleting the person' });
+      });
 });
 
-const unknownEndpoint = (req, res) => {
-    res.status(404).send({ error: 'unknown endpoint' });
-};
+app.use((req, res) => {
+    res.status(404).send({ error: 'Unknown endpoint' });
+});
 
-app.use(unknownEndpoint);
-
-const errorHandler = (error, req, res, next) => {
-    console.error(error.message);
-    if (error.name === 'CastError') {
-        return res.status(400).send({ error: 'malformatted id' });
-    }
-    next(error);
-};
-
-app.use(errorHandler);
-
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
